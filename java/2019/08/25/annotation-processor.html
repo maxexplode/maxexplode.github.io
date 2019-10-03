@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title>
+    Creating Annotation Processor To Generate Getters And Setters - Coding. Error
+    
+  </title>
+
+  <meta name="description" content="Generate Your Java Code Don’t Repeat !">
+
+  <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
+
+  <link rel="stylesheet" href="/assets/vendor/fontawesome-free/css/all.min.css">
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://localhost:4000/java/2019/08/25/annotation-processor.html">
+  <link rel="alternate" type="application/rss+xml" title="Coding. Error" href="/feed.xml">
+
+</head>
+
+
+<body>
+
+  <!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
+  <div class="container">
+    <a class="navbar-brand" href="/">Coding. Error</a>
+    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      Menu
+      <i class="fa fa-bars"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/about">About</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/posts">Posts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/contact">Contact</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+  <!-- Page Header -->
+
+  <header class="masthead">
+    
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+          <div class="post-heading">
+            <h1>Creating Annotation Processor To Generate Getters And Setters</h1>
+            
+            <span class="meta">Posted by
+              <a href="#"></a>
+              on August 25, 2019 &middot; <span class="reading-time" title="Estimated read time">
+  
+   15 mins  read </span>
+
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+
+        <p><strong>Generate Your Java Code Don’t Repeat !</strong></p>
+
+<p>I’m writing this blog because of some scenarios in my work experience that I had some trouble doing, and also i got fascinated by the idea of generating code rather than copy and pasting the same stuff over and over. I will explain some scenarios that we do need to generate our code based on some resources or some criteria to make it productive and time saving,</p>
+
+<blockquote>
+  <p>Use Case #1</p>
+</blockquote>
+
+<p>If any of you (reading this blog) , have any experience developing rest based api’s with <a href="https://swagger.io/">swagger</a> documentation, in order to provide examples and descriptions about it you will need to add some annotations to your model classes most like <code class="highlighter-rouge">@ApiModeProperty</code> to describe elements in your api, so if you have 100 of model classes you need to fill every class with above annotations to make your api more readable and understanding, so it is not an easy task, one way of making this easy is you can create a resource file (excel) and feed it to a program which will do modifications based on a criteria you defined.</p>
+
+<blockquote>
+  <p>Use Case #2</p>
+</blockquote>
+
+<p>I think you’ve heard of <a href="https://projectlombok.org/">lombok</a>, When you writing your java code you will need to add getters and setters, and other pretty basic things to your model classes and lombok is a great tool to make it easier to generate vanilla code and save your time. But if you need to generate something that pretty much custom then you are back to square one, so if you know the way to do this you can generate it easily,</p>
+
+<p>So enough of the chat, I think now you know the importance of this and we will start generating some code, I will try to make this short and easy to understand,</p>
+
+<p>First of all you will need to learn some basics of the annotation processing, to do that you can refer to the following articles based on annotation processing,</p>
+
+<ul>
+  <li><a href="https://www.javacodegeeks.com/2015/09/java-annotation-processors.html">Java Annotation Processors</a></li>
+</ul>
+
+<p>So i’m guessing now you have an idea of annotation processors.</p>
+
+<p>Let’s start with a processor that will generate getters setters on a java pojo. I will create two projects, one is for the annotation processor and other one is for the demo project.</p>
+
+<p><strong>Sample Processor</strong></p>
+
+<p>project structure (maven)</p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;project</span> <span class="na">xmlns=</span><span class="s">"http://maven.apache.org/POM/4.0.0"</span>
+         <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span>
+         <span class="na">xsi:schemaLocation=</span><span class="s">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;modelVersion&gt;</span>4.0.0<span class="nt">&lt;/modelVersion&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>com.maxexplode<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>annotation-processor<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>1.0<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;build&gt;</span>
+        <span class="nt">&lt;plugins&gt;</span>
+            <span class="nt">&lt;plugin&gt;</span>
+                <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+                <span class="nt">&lt;artifactId&gt;</span>maven-compiler-plugin<span class="nt">&lt;/artifactId&gt;</span>
+                <span class="nt">&lt;configuration&gt;</span>
+                    <span class="nt">&lt;source&gt;</span>8<span class="nt">&lt;/source&gt;</span>
+                    <span class="nt">&lt;target&gt;</span>8<span class="nt">&lt;/target&gt;</span>
+                <span class="nt">&lt;/configuration&gt;</span>
+            <span class="nt">&lt;/plugin&gt;</span>
+        <span class="nt">&lt;/plugins&gt;</span>
+    <span class="nt">&lt;/build&gt;</span>
+    <span class="nt">&lt;properties&gt;</span>
+        <span class="nt">&lt;auto-service.version&gt;</span>1.0-rc4<span class="nt">&lt;/auto-service.version&gt;</span>
+    <span class="nt">&lt;/properties&gt;</span>
+    <span class="nt">&lt;dependencies&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>com.google.auto.service<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>auto-service<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>${auto-service.version}<span class="nt">&lt;/version&gt;</span>
+            <span class="nt">&lt;optional&gt;</span>true<span class="nt">&lt;/optional&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>com.github.olivergondza<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>maven-jdk-tools-wrapper<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>0.1<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;/dependencies&gt;</span>
+<span class="nt">&lt;/project&gt;</span>
+
+</code></pre></div></div>
+
+<p>In case if you are wondering about <a href="https://www.baeldung.com/google-autoservice">auto-service</a> dependency, it is used to generate <code class="highlighter-rouge">META-INF/service</code> file automatically for our annotation processor.</p>
+
+<p>And our annotation for the processor will be <code class="highlighter-rouge">@SimplePojo</code></p>
+
+<blockquote>
+  <p>Please note that we are using maven-jdk-tools-wrapper as a substitute for the 
+java tools.jar, otherwise you will need to specify it as following in pom file</p>
+</blockquote>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+</code></pre></div></div>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kn">import</span> <span class="nn">java.lang.annotation.ElementType</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.lang.annotation.Retention</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.lang.annotation.RetentionPolicy</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.lang.annotation.Target</span><span class="o">;</span>
+
+<span class="nd">@Target</span><span class="o">({</span><span class="nc">ElementType</span><span class="o">.</span><span class="na">METHOD</span><span class="o">,</span> <span class="nc">ElementType</span><span class="o">.</span><span class="na">TYPE</span><span class="o">,</span> <span class="nc">ElementType</span><span class="o">.</span><span class="na">CONSTRUCTOR</span><span class="o">})</span>
+<span class="nd">@Retention</span><span class="o">(</span><span class="nc">RetentionPolicy</span><span class="o">.</span><span class="na">SOURCE</span><span class="o">)</span>
+<span class="kd">public</span> <span class="nd">@interface</span> <span class="nc">SimplePojo</span> <span class="o">{</span>
+<span class="o">}</span>
+
+</code></pre></div></div>
+
+<p>Sample processor for our generation</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">com.google.auto.service.AutoService</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.maxexplode.processor.stereotype.SimplePojo</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.source.tree.ClassTree</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.source.tree.CompilationUnitTree</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.source.util.TreePath</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.source.util.TreePathScanner</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.source.util.Trees</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.code.Symbol</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.code.Symtab</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.code.TypeTag</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.processing.JavacProcessingEnvironment</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.tree.JCTree</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.tree.JCTree.JCExpression</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.tree.JCTree.JCMethodDecl</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.tree.JCTree.JCVariableDecl</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.tree.TreeMaker</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.tree.TreeTranslator</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.util.Context</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.util.List</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.sun.tools.javac.util.Names</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.AbstractProcessor</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.Messager</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.ProcessingEnvironment</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.Processor</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.RoundEnvironment</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.SupportedAnnotationTypes</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.annotation.processing.SupportedSourceVersion</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.lang.model.SourceVersion</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.lang.model.element.Element</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.lang.model.element.TypeElement</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.tools.Diagnostic</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.tools.JavaFileObject</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.util.Set</span><span class="o">;</span>
+
+<span class="nd">@SupportedAnnotationTypes</span><span class="o">(</span>
+    <span class="s">"com.maxexplode.processor.stereotype.SimplePojo"</span><span class="o">)</span>
+<span class="nd">@SupportedSourceVersion</span><span class="o">(</span><span class="nc">SourceVersion</span><span class="o">.</span><span class="na">RELEASE_8</span><span class="o">)</span>
+<span class="nd">@AutoService</span><span class="o">(</span><span class="nc">Processor</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">ResourceProcessor</span> <span class="kd">extends</span> <span class="nc">AbstractProcessor</span> <span class="o">{</span>
+
+  <span class="kd">private</span> <span class="nc">ProcessingEnvironment</span> <span class="n">processingEnvironment</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">Messager</span> <span class="no">MESSENGER</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">Trees</span> <span class="n">trees</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">TreeMaker</span> <span class="n">treeMaker</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">Names</span> <span class="n">names</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">Context</span> <span class="n">context</span><span class="o">;</span>
+
+  <span class="nd">@Override</span>
+  <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">init</span><span class="o">(</span><span class="nc">ProcessingEnvironment</span> <span class="n">processingEnv</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kd">super</span><span class="o">.</span><span class="na">init</span><span class="o">(</span><span class="n">processingEnv</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">processingEnvironment</span> <span class="o">=</span> <span class="n">processingEnv</span><span class="o">;</span>
+    <span class="no">MESSENGER</span> <span class="o">=</span> <span class="n">processingEnvironment</span><span class="o">.</span><span class="na">getMessager</span><span class="o">();</span>
+    <span class="nc">JavacProcessingEnvironment</span> <span class="n">javacProcessingEnvironment</span> <span class="o">=</span> <span class="o">(</span><span class="nc">JavacProcessingEnvironment</span><span class="o">)</span> <span class="n">processingEnv</span><span class="o">;</span>
+    <span class="n">trees</span> <span class="o">=</span> <span class="nc">Trees</span><span class="o">.</span><span class="na">instance</span><span class="o">(</span><span class="n">processingEnv</span><span class="o">);</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">javacProcessingEnvironment</span><span class="o">.</span><span class="na">getContext</span><span class="o">();</span>
+    <span class="n">treeMaker</span> <span class="o">=</span> <span class="nc">TreeMaker</span><span class="o">.</span><span class="na">instance</span><span class="o">(</span><span class="n">context</span><span class="o">);</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nc">Names</span><span class="o">.</span><span class="na">instance</span><span class="o">(</span><span class="n">context</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="nd">@Override</span>
+  <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">process</span><span class="o">(</span><span class="nc">Set</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="nc">TypeElement</span><span class="o">&gt;</span> <span class="n">annotations</span><span class="o">,</span> <span class="nc">RoundEnvironment</span> <span class="n">roundEnv</span><span class="o">)</span> <span class="o">{</span>
+    <span class="no">MESSENGER</span><span class="o">.</span><span class="na">printMessage</span><span class="o">(</span><span class="nc">Diagnostic</span><span class="o">.</span><span class="na">Kind</span><span class="o">.</span><span class="na">OTHER</span><span class="o">,</span> <span class="s">"Starting instrumentation ..."</span><span class="o">);</span>
+    <span class="kd">final</span> <span class="nc">TreePathScanner</span><span class="o">&lt;</span><span class="nc">Object</span><span class="o">,</span> <span class="nc">CompilationUnitTree</span><span class="o">&gt;</span> <span class="n">scanner</span> <span class="o">=</span>
+        <span class="k">new</span> <span class="nc">TreePathScanner</span><span class="o">&lt;</span><span class="nc">Object</span><span class="o">,</span> <span class="nc">CompilationUnitTree</span><span class="o">&gt;()</span> <span class="o">{</span>
+          <span class="nd">@Override</span>
+          <span class="kd">public</span> <span class="nc">Trees</span> <span class="nf">visitClass</span><span class="o">(</span>
+              <span class="kd">final</span> <span class="nc">ClassTree</span> <span class="n">classTree</span><span class="o">,</span>
+              <span class="kd">final</span> <span class="nc">CompilationUnitTree</span> <span class="n">unitTree</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">unitTree</span> <span class="k">instanceof</span> <span class="nc">JCTree</span><span class="o">.</span><span class="na">JCCompilationUnit</span><span class="o">)</span> <span class="o">{</span>
+              <span class="kd">final</span> <span class="nc">JCTree</span><span class="o">.</span><span class="na">JCCompilationUnit</span> <span class="n">compilationUnit</span> <span class="o">=</span> <span class="o">(</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCCompilationUnit</span><span class="o">)</span> <span class="n">unitTree</span><span class="o">;</span>
+              <span class="k">if</span> <span class="o">(</span><span class="n">compilationUnit</span><span class="o">.</span><span class="na">sourcefile</span><span class="o">.</span><span class="na">getKind</span><span class="o">()</span> <span class="o">==</span> <span class="nc">JavaFileObject</span><span class="o">.</span><span class="na">Kind</span><span class="o">.</span><span class="na">SOURCE</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">compilationUnit</span><span class="o">.</span><span class="na">accept</span><span class="o">(</span><span class="k">new</span> <span class="nc">TreeTranslator</span><span class="o">()</span> <span class="o">{</span>
+                  <span class="nd">@Override</span>
+                  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">visitClassDef</span><span class="o">(</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCClassDecl</span> <span class="n">jcClassDecl</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="kd">super</span><span class="o">.</span><span class="na">visitClassDef</span><span class="o">(</span><span class="n">jcClassDecl</span><span class="o">);</span>
+                    <span class="nc">List</span><span class="o">&lt;</span><span class="nc">JCTree</span><span class="o">&gt;</span> <span class="n">members</span> <span class="o">=</span> <span class="n">jcClassDecl</span><span class="o">.</span><span class="na">getMembers</span><span class="o">();</span>
+                    <span class="k">for</span> <span class="o">(</span><span class="nc">JCTree</span> <span class="n">member</span> <span class="o">:</span> <span class="n">members</span><span class="o">)</span> <span class="o">{</span>
+                      <span class="k">if</span> <span class="o">(</span><span class="n">member</span> <span class="k">instanceof</span> <span class="nc">JCVariableDecl</span><span class="o">)</span> <span class="o">{</span>
+                        <span class="nc">JCVariableDecl</span> <span class="n">field</span> <span class="o">=</span> <span class="o">(</span><span class="nc">JCVariableDecl</span><span class="o">)</span> <span class="n">member</span><span class="o">;</span>
+                        <span class="nc">List</span><span class="o">&lt;</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCMethodDecl</span><span class="o">&gt;</span> <span class="n">methods</span> <span class="o">=</span> <span class="n">createMethods</span><span class="o">(</span><span class="n">field</span><span class="o">);</span>
+                        <span class="k">for</span> <span class="o">(</span><span class="nc">JCMethodDecl</span> <span class="n">jcMethodDecl</span> <span class="o">:</span> <span class="n">methods</span><span class="o">)</span> <span class="o">{</span>
+                          <span class="n">jcClassDecl</span><span class="o">.</span><span class="na">defs</span> <span class="o">=</span> <span class="n">jcClassDecl</span><span class="o">.</span><span class="na">defs</span><span class="o">.</span><span class="na">prepend</span><span class="o">(</span><span class="n">jcMethodDecl</span><span class="o">);</span>
+                        <span class="o">}</span>
+                      <span class="o">}</span>
+                    <span class="o">}</span>
+                  <span class="o">}</span>
+                <span class="o">});</span>
+              <span class="o">}</span>
+            <span class="o">}</span>
+            <span class="k">return</span> <span class="n">trees</span><span class="o">;</span>
+          <span class="o">}</span>
+        <span class="o">};</span>
+
+    <span class="k">for</span> <span class="o">(</span><span class="kd">final</span> <span class="nc">Element</span> <span class="n">element</span> <span class="o">:</span> <span class="n">roundEnv</span><span class="o">.</span><span class="na">getElementsAnnotatedWith</span><span class="o">(</span><span class="nc">SimplePojo</span><span class="o">.</span><span class="na">class</span><span class="o">))</span> <span class="o">{</span>
+      <span class="kd">final</span> <span class="nc">TreePath</span> <span class="n">path</span> <span class="o">=</span> <span class="n">trees</span><span class="o">.</span><span class="na">getPath</span><span class="o">(</span><span class="n">element</span><span class="o">);</span>
+      <span class="n">scanner</span><span class="o">.</span><span class="na">scan</span><span class="o">(</span><span class="n">path</span><span class="o">,</span> <span class="n">path</span><span class="o">.</span><span class="na">getCompilationUnit</span><span class="o">());</span>
+    <span class="o">}</span>
+
+    <span class="no">MESSENGER</span><span class="o">.</span><span class="na">printMessage</span><span class="o">(</span><span class="nc">Diagnostic</span><span class="o">.</span><span class="na">Kind</span><span class="o">.</span><span class="na">OTHER</span><span class="o">,</span> <span class="nc">String</span>
+        <span class="o">.</span><span class="na">format</span><span class="o">(</span>
+            <span class="s">"Finished instrumenting classes : processed classes"</span><span class="o">,</span>
+            <span class="n">roundEnv</span><span class="o">.</span><span class="na">getRootElements</span><span class="o">().</span><span class="na">size</span><span class="o">()));</span>
+
+    <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+  <span class="o">}</span>
+
+</code></pre></div></div>
+<p>Creating getters and setters</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="kd">public</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCMethodDecl</span><span class="o">&gt;</span> <span class="nf">createMethods</span><span class="o">(</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCVariableDecl</span> <span class="n">field</span><span class="o">)</span> <span class="o">{</span>
+    <span class="nc">JCVariableDecl</span> <span class="n">param</span> <span class="o">=</span> <span class="n">treeMaker</span><span class="o">.</span><span class="na">Param</span><span class="o">(</span><span class="n">field</span><span class="o">.</span><span class="na">getName</span><span class="o">(),</span> <span class="n">field</span><span class="o">.</span><span class="na">vartype</span><span class="o">.</span><span class="na">type</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nc">List</span><span class="o">.</span><span class="na">of</span><span class="o">(</span>
+        <span class="n">treeMaker</span><span class="o">.</span><span class="na">MethodDef</span><span class="o">(</span>
+            <span class="n">treeMaker</span><span class="o">.</span><span class="na">Modifiers</span><span class="o">(</span><span class="mi">1</span><span class="o">),</span>
+            <span class="n">names</span><span class="o">.</span><span class="na">fromString</span><span class="o">(</span><span class="s">"get"</span><span class="o">.</span><span class="na">concat</span><span class="o">(</span><span class="n">field</span><span class="o">.</span><span class="na">getName</span><span class="o">().</span><span class="na">toString</span><span class="o">())),</span>
+            <span class="o">(</span><span class="nc">JCExpression</span><span class="o">)</span> <span class="n">field</span><span class="o">.</span><span class="na">getType</span><span class="o">(),</span>
+            <span class="nc">List</span><span class="o">.</span><span class="na">nil</span><span class="o">(),</span>
+            <span class="nc">List</span><span class="o">.</span><span class="na">nil</span><span class="o">(),</span>
+            <span class="nc">List</span><span class="o">.</span><span class="na">nil</span><span class="o">(),</span>
+            <span class="n">treeMaker</span><span class="o">.</span><span class="na">Block</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">createGetterForField</span><span class="o">(</span><span class="n">field</span><span class="o">)),</span>
+            <span class="kc">null</span><span class="o">),</span>
+        <span class="n">treeMaker</span><span class="o">.</span><span class="na">MethodDef</span><span class="o">(</span>
+            <span class="n">treeMaker</span><span class="o">.</span><span class="na">Modifiers</span><span class="o">(</span><span class="mi">1</span><span class="o">),</span>
+            <span class="n">names</span><span class="o">.</span><span class="na">fromString</span><span class="o">(</span><span class="s">"set"</span><span class="o">.</span><span class="na">concat</span><span class="o">(</span><span class="n">field</span><span class="o">.</span><span class="na">getName</span><span class="o">().</span><span class="na">toString</span><span class="o">())),</span>
+            <span class="n">treeMaker</span><span class="o">.</span><span class="na">TypeIdent</span><span class="o">(</span><span class="nc">TypeTag</span><span class="o">.</span><span class="na">VOID</span><span class="o">),</span>
+            <span class="nc">List</span><span class="o">.</span><span class="na">nil</span><span class="o">(),</span>
+            <span class="nc">List</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">param</span><span class="o">),</span>
+            <span class="nc">List</span><span class="o">.</span><span class="na">nil</span><span class="o">(),</span>
+            <span class="n">treeMaker</span><span class="o">.</span><span class="na">Block</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">createSetterForField</span><span class="o">(</span>
+                <span class="n">field</span><span class="o">,</span>
+                <span class="n">param</span><span class="o">)),</span>
+            <span class="kc">null</span><span class="o">)</span>
+    <span class="o">);</span>
+  <span class="o">}</span>
+
+</code></pre></div></div>
+<p>Sample getter implementation</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+  <span class="kd">public</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCStatement</span><span class="o">&gt;</span> <span class="nf">createGetterForField</span><span class="o">(</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCVariableDecl</span> <span class="n">field</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="nc">List</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">treeMaker</span><span class="o">.</span><span class="na">Return</span><span class="o">((</span><span class="n">treeMaker</span><span class="o">.</span><span class="na">Ident</span><span class="o">(</span><span class="n">field</span><span class="o">.</span><span class="na">getName</span><span class="o">()))));</span>
+  <span class="o">}</span>
+</code></pre></div></div>
+<p>Sample setter implementation</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="kd">public</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">JCTree</span><span class="o">.</span><span class="na">JCStatement</span><span class="o">&gt;</span> <span class="nf">createSetterForField</span><span class="o">(</span>
+      <span class="nc">JCTree</span><span class="o">.</span><span class="na">JCVariableDecl</span> <span class="n">field</span><span class="o">,</span> <span class="nc">JCTree</span><span class="o">.</span><span class="na">JCVariableDecl</span> <span class="n">field1</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="nc">List</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">treeMaker</span><span class="o">.</span><span class="na">Assignment</span><span class="o">(</span><span class="n">field</span><span class="o">.</span><span class="na">sym</span><span class="o">,</span> <span class="n">treeMaker</span><span class="o">.</span><span class="na">Assign</span><span class="o">(</span>
+        <span class="n">treeMaker</span><span class="o">.</span><span class="na">Ident</span><span class="o">(</span><span class="n">field</span><span class="o">),</span>
+        <span class="n">treeMaker</span><span class="o">.</span><span class="na">Ident</span><span class="o">(</span><span class="n">field1</span><span class="o">))),</span> <span class="n">treeMaker</span><span class="o">.</span><span class="na">Return</span><span class="o">(</span><span class="kc">null</span><span class="o">));</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>And build above project with</p>
+
+<pre><code class="language-cmd">mvn clean install
+</code></pre>
+
+<p><strong>Sample Processor Demo</strong></p>
+
+<p>In this project you can see how are we going to use the above annotation processor to generate simple getter setters for our
+pojo class.</p>
+
+<p>project structure (maven)</p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;project</span> <span class="na">xmlns=</span><span class="s">"http://maven.apache.org/POM/4.0.0"</span>
+  <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span>
+  <span class="na">xsi:schemaLocation=</span><span class="s">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;modelVersion&gt;</span>4.0.0<span class="nt">&lt;/modelVersion&gt;</span>
+
+  <span class="nt">&lt;groupId&gt;</span>com.maxexplode<span class="nt">&lt;/groupId&gt;</span>
+  <span class="nt">&lt;artifactId&gt;</span>annotation-processor-demo<span class="nt">&lt;/artifactId&gt;</span>
+  <span class="nt">&lt;version&gt;</span>1.0<span class="nt">&lt;/version&gt;</span>
+
+  <span class="nt">&lt;dependencies&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>com.maxexplode<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>annotation-processor<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>1.0<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+  <span class="nt">&lt;/dependencies&gt;</span>
+<span class="nt">&lt;/project&gt;</span>
+
+</code></pre></div></div>
+
+<p>Our demo class</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">com.maxexplode.processor.stereotype.SimplePojo</span><span class="o">;</span>
+
+<span class="nd">@SimplePojo</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SamplePojo</span> <span class="o">{</span>
+
+  <span class="kd">private</span> <span class="nc">String</span> <span class="n">name</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">String</span> <span class="n">address</span><span class="o">;</span>
+
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Now we need to compile this project and see if our processor is working as expected.</p>
+
+<p>Decompiled <code class="highlighter-rouge">SimplePojo.class</code></p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">//</span>
+<span class="c1">// Source code recreated from a .class file by IntelliJ IDEA</span>
+<span class="c1">// (powered by Fernflower decompiler)</span>
+<span class="c1">//</span>
+
+<span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">maxexplode</span><span class="o">.</span><span class="na">processordemo</span><span class="o">.</span><span class="na">pojo</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SamplePojo</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="nc">String</span> <span class="n">name</span><span class="o">;</span>
+  <span class="kd">private</span> <span class="nc">String</span> <span class="n">address</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setaddress</span><span class="o">(</span><span class="nc">String</span> <span class="n">_address</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">address</span> <span class="o">=</span> <span class="n">_address</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getaddress</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="o">.</span><span class="na">address</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setname</span><span class="o">(</span><span class="nc">String</span> <span class="n">_name</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">name</span> <span class="o">=</span> <span class="n">_name</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getname</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="o">.</span><span class="na">name</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="nf">SamplePojo</span><span class="o">()</span> <span class="o">{</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+
+</code></pre></div></div>
+
+<p><strong>Debugging Annotation Processor</strong></p>
+
+<p>Add following custom vm parameter to your ide</p>
+
+<blockquote>
+  <p>-Dcompiler.process.debug.port=8000</p>
+</blockquote>
+
+<p>And Run with (on demo project)</p>
+
+<pre><code class="language-cmd">mvnDebug clean compile
+</code></pre>
+
+
+        <hr>
+
+        <div class="clearfix">
+
+          
+          
+          <a class="btn btn-primary float-right" href="/jekyll/update/2019/10/02/welcome-to-maxs-blog.html" data-toggle="tooltip" data-placement="top" title="Welcome to Max's Blog!">Next<span class="d-none d-md-inline">
+              Post</span> &rarr;</a>
+          
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Footer -->
+
+<hr>
+
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        <ul class="list-inline text-center">
+          
+          <li class="list-inline-item">
+            <a href="mailto:explodemax5@gmail.com">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="far fa-envelope fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+          
+          <li class="list-inline-item">
+            <a href="https://twitter.com/jekyllrb">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fab fa-twitter fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+          
+          
+          
+          <li class="list-inline-item">
+            <a href="https://github.com/jekyll">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="copyright text-muted">Copyright &copy;  2019</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+  <script src="/assets/vendor/jquery/jquery.min.js"></script>
+<script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/assets/vendor/startbootstrap-clean-blog/js/clean-blog.min.js"></script>
+
+<script src="/assets/scripts.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id="></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', '');
+</script>
+
+
+
+</body>
+
+</html>
